@@ -34,8 +34,10 @@
 # --------------------------------------------------
 # imports
 # --------------------------------------------------
+import re
 import tkinter as tk
 from tkinter import filedialog, messagebox, simpledialog, font
+
 from file_manager import FileManager
 
 # --------------------------------------------------
@@ -59,13 +61,14 @@ class NotepadApp:
         self.dark_mode = False
         self.text_area = None
 
-        # self.autosave = AutoSaveManager(
-        #     self.root, self.file_manager, self.text_area
-        # )
-        # self.autosave.start()
-
         self._setup_ui()
         self._bind_shortcuts()
+
+        self.autosave = AutoSaveManager(
+            self.root, self.file_manager, self.text_area
+        )
+        self.autosave.text_widget = self.text_area
+        self.autosave.start()
 
     # --------------------------------------------------
     def _setup_ui(self):
@@ -84,8 +87,23 @@ class NotepadApp:
             expand=True
         )
 
+        # Status bar
+        self.status_bar = StatusBar(self.root)
+        self.status_bar.pack(side=tk.BOTTOM, fill=tk.X)
+
         self._create_menu()
         self._apply_theme()
+
+        # Cursor & modification tracking
+        self.text_area.bind("<KeyRelease>", self._update_status)
+        self.text_area.bind("<ButtonRelease>", self._update_status)
+        self.text_area.bind("<<Modified>>", self._on_modified)
+
+        self.text_area.tag_config(
+            "highlight",
+            background="orange" if not self.dark_mode else "purple"
+        )
+        self._update_status()
 
     # def initialize_ui(self):
     #     pass
@@ -140,6 +158,9 @@ class NotepadApp:
         )
         edit_menu.add_separator()
         edit_menu.add_command(label="Search", command=self.search_text)
+        edit_menu.add_command(
+            label="Regex Search", command=self.regex_search_text
+        )
         menu_bar.add_cascade(label="Edit", menu=edit_menu)
 
         # View Menu
@@ -183,6 +204,8 @@ class NotepadApp:
             self.file_manager.write_file(
                 self.file_manager.file_path, content
             )
+        self.text_area.edit_modified(False)
+        self._update_status()
     
     def save_file_as(self):
         path = filedialog.asksaveasfilename(defaultextension=".txt")
@@ -190,6 +213,8 @@ class NotepadApp:
             content = self.text_area.get("1.0", tk.END)
             self.file_manager.write_file(path, content)
             self.update_title(path)
+        self.text_area.edit_modified(False)
+        self._update_status()
     
     def exit_app(self):
         if messagebox.askokcancel("Quit", "Exit without saving?"):
@@ -250,6 +275,48 @@ class NotepadApp:
             self.text_area.config(
                 bg="white", fg="black", insertbackground="black"
             )
+        self.text_area.tag_config(
+            "highlight",
+            background="orange" if not self.dark_mode else "purple"
+        )
+
+    # --------------------------------------------------
+    # Update Status
+    def _update_status(self, event=None):
+        index = self.text_area.index(tk.INSERT)
+        line, col = index.split(".")
+        # words = len(self.text_area.get("1.0", tk.END).split())
+        content = self.text_area.get("1.0", "end-1c")
+        words = len(re.findall(r"\b\w+\b", content))
+        status = "Modified" if self.text_area.edit_modified() else "Saved"
+        self.status_bar.update((line, col), words, status)
+    
+    # --------------------------------------------------
+    # On Modified
+    def _on_modified(self, event=None):
+        # self.text_area.edit_modified(True)
+        self._update_status()
+        # self.text_area.edit_modified(False)
+    
+    # --------------------------------------------------
+    # Regex Search Text
+    def regex_search_text(self):
+        pattern = simpledialog.askstring("Regex Search", "Enter regex:")
+        if not pattern:
+            return
+        
+        self.text_area.tag_remove("highlight", "1.0", tk.END)
+        content = self.text_area.get("1.0", tk.END)
+
+        try:
+            for match in re.finditer(pattern, content, re.IGNORECASE):
+                start = f"1.0+{match.start()}c"
+                end = f"1.0+{match.end()}c"
+                self.text_area.tag_add("highlight", start, end)
+
+        except re.error as e:
+            messagebox.showerror("Regex Error", str(e))
+
 
 # # --------------------------------------------------
 # # 2. text editor area
@@ -427,7 +494,11 @@ class AutoSaveManager:
         self._autosave()
     
     def _autosave(self):
-        if self.file_manager.file_path and self.text_widget.edit_modified():
+        if (
+            self.text_widget
+            and self.file_manager.file_path 
+            and self.text_widget.edit_modified()
+        ):
             content = self.text_widget.get("1.0", tk.END)
             self.file_manager.write_file(
                 self.file_manager.file_path, content

@@ -128,12 +128,36 @@ dist/
 
 ## 🔮 Future Enhancements
 
-- Dark mode
+- Dark mode - done
 - Line numbers
 - Syntax highlighting
-- Autosave
+- Autosave - done
 - Tabbed documents
-- Regex-based search
+- Regex-based search - done
+
+## 🏗 Project Structure for Multi-File MVC Refactor
+
+```
+desktop_notepad_clone/
+│
+├── app.py                 # Entry point
+├── controller/
+│   └── notepad_controller.py
+│
+├── view/
+│   ├── notepad_view.py
+│   └── status_bar.py
+│
+├── model/
+│   ├── file_manager.py
+│   └── autosave_manager.py
+│
+├── utils/
+│   └── search_utils.py
+│
+└── tests/
+    └── test_file_manager.py
+```
 
 ---
 
