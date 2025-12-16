@@ -63,7 +63,7 @@ python -m tkinter
 python notepad.py
 ```
 
-### 2C Run tests:
+### 3 Run tests:
 
 ```bash
 python -m unittest test_file_manager.py
@@ -71,13 +71,13 @@ python -m unittest test_file_manager.py
 
 ## 3 BUID App
 
-### 3A Build App
+### 3.1 Build App
 
 ```bash
 pyinstaller --onefile --windowed notepad.py
 ```
 
-### 3B Output
+### 3.2 Output
 
 ```md
 dist/
@@ -161,3 +161,16 @@ Under the terms of the GPL license.
 ## 🧑💻 Interview One-Liner
 
 > A lightweight Tkinter-based desktop notepad clone showcasing GUI design, event handling, and file operations in Python.
+
+## Creating tag
+
+```bash
+# 1. Check existing tags
+git tag
+# 2. Create a valid tag
+git tag -a v1.0.0 -m "Release version 1.0.0"
+# or lightweight tag
+git tag v1.0.0
+# push tag to remote
+git push origin v1.0.0
+```
